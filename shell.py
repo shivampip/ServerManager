@@ -27,6 +27,13 @@ def color(text, col):
 def cprint(text, col= 'cyan'):
     print(color(text, col))
 
+
+import os 
+
+def clear(): 
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+
 def check_cmd(con, cmd):
     if(cmd in ['stop', 'exit']):
         cprint("Thanks for using", "blue")
@@ -34,6 +41,9 @@ def check_cmd(con, cmd):
         exit()
     elif(cmd=="help"):
         cprint("We are here to help")
+        return True 
+    elif(cmd in ['cls', 'clear']):
+        clear()
         return True 
     return False 
 
