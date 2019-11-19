@@ -1,12 +1,12 @@
 from fabric import Connection
-
+from termcolor import colored 
 
 def rexe(con, cmd):
     try:
         out= con.run(cmd)
         return out.stdout.strip()
     except Exception as e:
-        print("Error while executing command")
+        print(color("Error", "red"))
         return "Error: {}".format(e)
 
 
@@ -15,42 +15,82 @@ def lexe(con, cmd):
         out= con.local(cmd)
         return out.stdout.strip()
     except Exception as e:
-        print("Error while executing command")
+        print(color("Error", "red"))
         return "Error: {}".format(e)
 
-def open_local_shell():
-    con= Connection("localhost")
-    cmd= "Start"
-    while(True):
-        cmd= input("$ ")
-        if(cmd in ['stop', 'exit']):
-            break
-        lexe(con, cmd)
-    print("Thanks for using local shell")
 
 
+def color(text, col):
+    return colored(text, col, attrs= ['bold'])
 
-def open_shell(local= False):
+
+def cprint(text, col= 'cyan'):
+    print(color(text, col))
+
+def check_cmd(con, cmd):
+    if(cmd in ['stop', 'exit']):
+        cprint("Thanks for using", "blue")
+        con.close()
+        exit()
+    elif(cmd=="help"):
+        cprint("We are here to help")
+        return True 
+    return False 
+
+
+def open_shell(local= False, keys= None):
+    host= ""
+    con= None
     exe= rexe
     if(local):
+        host= "local"
+        con= Connection("localhost")
         exe= lexe
-        print("Welcome to local shell")
+        cprint("Welcome to local shell")
     else:
+        ip= keys[0]
+        port= keys[1]
+        user= keys[2]
+        password= keys[3]
+        host= "{}@{}".format(user, ip)
+        con= Connection(ip, port= port, user= user, connect_kwargs= {"password": password})
         exe= rexe
-        print("Welcome to remote shell")
-    con= Connection("localhost")
+        cprint("Welcome to remote shell")
 
     path= ""
     while(True):
-        cmd= input("{}$ ".format(path))
+        cmd= input("{}:{}$ ".format(color(host, "green"), color("~/"+path, "yellow")))
         if(cmd.startswith("cd")):
-            path= "{}{}/".format(path, cmd[3:])
-                
+            cmd= cmd[3:]
+            if(cmd== ""):
+                continue
+            path= "{}{}/".format(path, cmd)
+            if(cmd.startswith("..")):
+                pd= path.split("/")
+                pd= pd[:-3]
+                npath= "/".join(pd)
+                path= npath+"/"
+            continue
+        if(check_cmd(con, cmd)):
+            continue
         with con.cd(path):
             exe(con, cmd)
     print("Thanks for using")
 
 
 
+
+def get_credentials():
+    with open("keyfile.hidden", "r") as f:
+        data= f.read()
+        return data.split("\n")
+
+
 if(__name__=="__main__"):
-    open_shell(local= True)
+    keys= get_credentials()
+    open_shell(keys= keys)
+    
+
+
+
+    #open_shell(local= True)
